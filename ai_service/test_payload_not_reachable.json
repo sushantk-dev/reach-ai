@@ -1,0 +1,7 @@
+{
+  "cveId": "CVE-2021-44228",
+  "description": "Apache Log4j2 JNDI features used in configuration, log messages, and parameters do not protect against attacker controlled LDAP and other JNDI related endpoints.",
+  "severity": "CRITICAL",
+  "dependencyCoordinates": "org.apache.logging.log4j:log4j-core:2.14.1",
+  "callChains": []
+}

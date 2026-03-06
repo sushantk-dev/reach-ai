@@ -13,6 +13,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 /**
  * Service for communicating with the Python AI Explanation Service
  * Sends vulnerability data and receives AI-generated explanations
+ * Iteration 4: Now handles exploit demo generation
  */
 @Slf4j
 @Service
@@ -47,6 +49,7 @@ public class AIExplanationService {
 
     /**
      * Generates AI explanations for vulnerabilities with reachability analysis
+     * Iteration 4: Now includes exploit demos for EXPLOITABLE vulnerabilities
      *
      * @param vulnerabilities List of vulnerable dependencies to explain
      */
@@ -72,6 +75,7 @@ public class AIExplanationService {
                     vuln.setConfidenceReasoning("AI explanation service unavailable");
                     vuln.setPlainEnglishExplanation("Unable to generate explanation at this time.");
                     vuln.setAttackNarrative("Not available");
+                    vuln.setExploitDemo(null);
                 }
             } else {
                 // No call chains - set appropriate defaults
@@ -85,6 +89,7 @@ public class AIExplanationService {
                                 vuln.getDependency().toCoordinates())
                 );
                 vuln.setAttackNarrative("Not applicable - vulnerability is not reachable.");
+                vuln.setExploitDemo(null);
             }
         }
 
@@ -93,6 +98,7 @@ public class AIExplanationService {
 
     /**
      * Generates an AI explanation for a single vulnerability
+     * Iteration 4: Now extracts exploit demo from response
      */
     private void generateExplanation(VulnerableDependency vuln) throws Exception {
         log.info("Requesting AI explanation for {}", vuln.getCveId());
@@ -119,8 +125,9 @@ public class AIExplanationService {
         // Parse response
         parseExplanationResponse(response.body(), vuln);
 
-        log.info("Successfully received AI explanation for {}: verdict={}, confidence={}",
-                vuln.getCveId(), vuln.getVerdict(), vuln.getConfidenceScore());
+        log.info("Successfully received AI explanation for {}: verdict={}, confidence={}, hasExploitDemo={}",
+                vuln.getCveId(), vuln.getVerdict(), vuln.getConfidenceScore(),
+                vuln.getExploitDemo() != null);
     }
 
     /**
@@ -175,16 +182,51 @@ public class AIExplanationService {
 
     /**
      * Parses the AI service response and updates the vulnerability object
+     * Iteration 4: Now extracts exploit demo if present
      */
     private void parseExplanationResponse(String responseBody, VulnerableDependency vuln) throws Exception {
         JsonNode root = objectMapper.readTree(responseBody);
 
-        // Extract fields from response
+        // Extract core fields from response
         vuln.setVerdict(root.path("verdict").asText("NEEDS_REVIEW"));
         vuln.setConfidenceScore(root.path("confidenceScore").asDouble(0.5));
         vuln.setConfidenceReasoning(root.path("confidenceReasoning").asText(""));
         vuln.setPlainEnglishExplanation(root.path("plainEnglishExplanation").asText(""));
         vuln.setAttackNarrative(root.path("attackNarrative").asText(""));
+
+        // Iteration 4: Extract exploit demo if present
+        if (root.has("exploitDemo") && !root.get("exploitDemo").isNull()) {
+            JsonNode exploitNode = root.get("exploitDemo");
+
+            VulnerableDependency.ExploitDemo exploitDemo = VulnerableDependency.ExploitDemo.builder()
+                    .attackSetup(exploitNode.path("attackSetup").asText(""))
+                    .httpRequest(exploitNode.path("httpRequest").asText(""))
+                    .stepByStep(extractStringList(exploitNode.get("stepByStep")))
+                    .attackerOutcome(exploitNode.path("attackerOutcome").asText(""))
+                    .unsafeCode(exploitNode.path("unsafeCode").asText(""))
+                    .safeCode(exploitNode.path("safeCode").asText(""))
+                    .build();
+
+            vuln.setExploitDemo(exploitDemo);
+            log.debug("Extracted exploit demo for {}", vuln.getCveId());
+        } else {
+            vuln.setExploitDemo(null);
+        }
+    }
+
+    /**
+     * Helper method to extract a list of strings from a JsonNode array
+     */
+    private List<String> extractStringList(JsonNode arrayNode) {
+        List<String> result = new ArrayList<>();
+
+        if (arrayNode != null && arrayNode.isArray()) {
+            for (JsonNode item : arrayNode) {
+                result.add(item.asText(""));
+            }
+        }
+
+        return result;
     }
 
     /**
