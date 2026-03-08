@@ -1,17 +1,19 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ScanResponse, VulnerableDependency } from '../../models/scan.model';
+import { AttackFlowDiagramComponent } from '../attack-flow-diagram/attack-flow-diagram.component';
 
 @Component({
   selector: 'app-scan-results',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, AttackFlowDiagramComponent],
   templateUrl: './scan-results.component.html',
   styleUrls: ['./scan-results.component.css']
 })
 export class ScanResultsComponent {
   @Input() scanResults: ScanResponse | null = null;
   selectedVulnerability: VulnerableDependency | null = null;
+  showDiagramView: boolean = false;
 
   selectVulnerability(vuln: VulnerableDependency): void {
     this.selectedVulnerability = vuln;
@@ -19,6 +21,11 @@ export class ScanResultsComponent {
 
   closeDetails(): void {
     this.selectedVulnerability = null;
+    this.showDiagramView = false;
+  }
+
+  toggleDiagramView(): void {
+    this.showDiagramView = !this.showDiagramView;
   }
 
   getSeverityClass(severity: string): string {

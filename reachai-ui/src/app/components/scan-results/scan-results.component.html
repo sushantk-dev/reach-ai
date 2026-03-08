@@ -95,19 +95,43 @@
         </div>
 
         <div class="detail-section" *ngIf="selectedVulnerability.callChains && selectedVulnerability.callChains.length > 0">
-          <h3>Call Chains ({{ selectedVulnerability.callChains.length }})</h3>
-          <div class="call-chain" *ngFor="let chain of selectedVulnerability.callChains; let i = index">
-            <div class="chain-header">
-              <strong>Chain {{ i + 1 }}</strong>
-              <span class="chain-path">{{ chain.entryPoint }} → {{ chain.vulnerableSink }}</span>
-            </div>
-            <div class="chain-steps">
-              <div class="step" *ngFor="let step of chain.steps; let stepNum = index">
-                <div class="step-number">{{ stepNum + 1 }}</div>
-                <div class="step-content">
-                  <div class="step-method">{{ step.className }}.{{ step.methodName }}</div>
-                  <div class="step-location">{{ step.fileName }}:{{ step.lineNumber }}</div>
-                  <pre *ngIf="step.snippet" class="step-snippet"><code>{{ step.snippet }}</code></pre>
+          <div class="section-header-with-toggle">
+            <h3>Call Chains ({{ selectedVulnerability.callChains.length }})</h3>
+            <button class="btn-toggle-view" (click)="toggleDiagramView()">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" *ngIf="!showDiagramView">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+              </svg>
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" *ngIf="showDiagramView">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+              </svg>
+              <span>{{ showDiagramView ? 'Show List View' : 'Show Diagram' }}</span>
+            </button>
+          </div>
+
+          <!-- Diagram View -->
+          <div *ngIf="showDiagramView" class="diagram-view">
+            <app-attack-flow-diagram 
+              *ngFor="let chain of selectedVulnerability.callChains; let i = index"
+              [callChain]="chain"
+              [chainIndex]="i">
+            </app-attack-flow-diagram>
+          </div>
+
+          <!-- List View (Original) -->
+          <div *ngIf="!showDiagramView" class="list-view">
+            <div class="call-chain" *ngFor="let chain of selectedVulnerability.callChains; let i = index">
+              <div class="chain-header">
+                <strong>Chain {{ i + 1 }}</strong>
+                <span class="chain-path">{{ chain.entryPoint }} → {{ chain.vulnerableSink }}</span>
+              </div>
+              <div class="chain-steps">
+                <div class="step" *ngFor="let step of chain.steps; let stepNum = index">
+                  <div class="step-number">{{ stepNum + 1 }}</div>
+                  <div class="step-content">
+                    <div class="step-method">{{ step.className }}.{{ step.methodName }}</div>
+                    <div class="step-location">{{ step.fileName }}:{{ step.lineNumber }}</div>
+                    <pre *ngIf="step.snippet" class="step-snippet"><code>{{ step.snippet }}</code></pre>
+                  </div>
                 </div>
               </div>
             </div>

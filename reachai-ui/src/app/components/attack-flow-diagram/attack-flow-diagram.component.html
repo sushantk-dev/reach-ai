@@ -1,0 +1,86 @@
+<div class="diagram-container">
+  <div class="diagram-header">
+    <div class="diagram-title">
+      <h4>Attack Flow - Chain {{ chainIndex + 1 }}</h4>
+      <p class="diagram-subtitle">
+        <span class="path-label">Path:</span>
+        <span class="path-text">{{ callChain?.entryPoint }} → {{ callChain?.vulnerableSink }}</span>
+      </p>
+    </div>
+    <div class="diagram-controls">
+      <button class="btn-control" (click)="resetView()" title="Reset View">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+        </svg>
+        <span>Reset</span>
+      </button>
+      <button class="btn-control btn-export" (click)="exportToPng()" [disabled]="isExporting" title="Export as PNG">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" *ngIf="!isExporting">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+        </svg>
+        <span class="spinner-small" *ngIf="isExporting"></span>
+        <span>{{ isExporting ? 'Exporting...' : 'Export PNG' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="diagram-content">
+    <div class="diagram-canvas" #cytoscapeContainer></div>
+
+    <div class="node-details-panel" *ngIf="selectedNode">
+      <div class="panel-header">
+        <h5>{{ getNodeTypeLabel(selectedNode.type) }}</h5>
+        <button class="close-panel" (click)="closeNodeDetails()">×</button>
+      </div>
+      <div class="panel-body">
+        <div class="detail-row">
+          <span class="detail-label">Type:</span>
+          <span class="badge" [ngClass]="getNodeTypeBadgeClass(selectedNode.type)">
+            {{ getNodeTypeLabel(selectedNode.type) }}
+          </span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Class:</span>
+          <span class="detail-value">{{ selectedNode.className }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Method:</span>
+          <span class="detail-value code">{{ selectedNode.methodName }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Location:</span>
+          <span class="detail-value code">{{ selectedNode.fileName }}:{{ selectedNode.lineNumber }}</span>
+        </div>
+        <div class="code-snippet" *ngIf="selectedNode.snippet">
+          <div class="snippet-label">Code Snippet:</div>
+          <pre><code [innerHTML]="selectedNode.snippet"></code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-legend">
+    <div class="legend-title">Legend:</div>
+    <div class="legend-items">
+      <div class="legend-item">
+        <div class="legend-box entry"></div>
+        <span>Entry Point</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-box intermediate"></div>
+        <span>Intermediate</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-box sink"></div>
+        <span>Vulnerable Sink</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-hint">
+    <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+    </svg>
+    <span>Click on nodes to view details • Scroll to zoom • Drag to pan</span>
+  </div>
+</div>
