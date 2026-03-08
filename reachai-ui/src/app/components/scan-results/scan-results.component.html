@@ -1,0 +1,161 @@
+<div class="results-container" *ngIf="scanResults">
+  <div class="results-header">
+    <h2>Vulnerability Report</h2>
+    <p class="repo-url">{{ scanResults.repoUrl }}</p>
+    <p class="scan-time">Scanned: {{ scanResults.scanTime | date:'medium' }}</p>
+  </div>
+
+  <div *ngIf="scanResults.vulnerabilities.length === 0" class="no-vulnerabilities">
+    <svg class="no-vuln-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+    </svg>
+    <h3>No Vulnerabilities Found</h3>
+    <p>This repository appears to be secure based on our analysis.</p>
+  </div>
+
+  <div class="vulnerabilities-list" *ngIf="scanResults.vulnerabilities.length > 0">
+    <div class="vulnerability-card" 
+         *ngFor="let vuln of scanResults.vulnerabilities" 
+         (click)="selectVulnerability(vuln)">
+      <div class="vuln-header">
+        <div class="vuln-title">
+          <h3>{{ vuln.cveId }}</h3>
+          <span class="badge" [ngClass]="getSeverityClass(vuln.severity)">{{ vuln.severity }}</span>
+          <span class="badge" [ngClass]="getVerdictClass(vuln.verdict)" *ngIf="vuln.verdict">{{ vuln.verdict }}</span>
+        </div>
+        <div class="vuln-dependency">
+          {{ vuln.dependency.groupId }}:{{ vuln.dependency.artifactId }}:{{ vuln.dependency.version }}
+        </div>
+      </div>
+
+      <p class="vuln-description">{{ vuln.description }}</p>
+
+      <div class="confidence-score" *ngIf="vuln.confidenceScore !== null && vuln.confidenceScore !== undefined">
+        <div class="confidence-label">
+          <span>Confidence Score</span>
+          <span class="confidence-value">{{ (vuln.confidenceScore * 100).toFixed(0) }}%</span>
+        </div>
+        <div class="confidence-bar">
+          <div class="confidence-fill" 
+               [style.width]="getConfidenceBarWidth(vuln.confidenceScore)"
+               [style.background-color]="getConfidenceColor(vuln.confidenceScore)">
+          </div>
+        </div>
+      </div>
+
+      <div class="vuln-footer">
+        <button class="btn-link">View Details →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vulnerability Details Modal -->
+  <div class="modal-overlay" *ngIf="selectedVulnerability" (click)="closeDetails()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ selectedVulnerability.cveId }}</h2>
+        <button class="close-button" (click)="closeDetails()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="detail-section">
+          <h3>Vulnerability Information</h3>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Severity:</span>
+              <span class="badge" [ngClass]="getSeverityClass(selectedVulnerability.severity)">
+                {{ selectedVulnerability.severity }}
+              </span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Verdict:</span>
+              <span class="badge" [ngClass]="getVerdictClass(selectedVulnerability.verdict)">
+                {{ selectedVulnerability.verdict }}
+              </span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Dependency:</span>
+              <span>{{ selectedVulnerability.dependency.groupId }}:{{ selectedVulnerability.dependency.artifactId }}:{{ selectedVulnerability.dependency.version }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Confidence:</span>
+              <span>{{ (selectedVulnerability.confidenceScore * 100).toFixed(0) }}%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-section" *ngIf="selectedVulnerability.plainEnglishExplanation">
+          <h3>Explanation</h3>
+          <p class="explanation-text">{{ selectedVulnerability.plainEnglishExplanation }}</p>
+        </div>
+
+        <div class="detail-section" *ngIf="selectedVulnerability.confidenceReasoning">
+          <h3>Confidence Reasoning</h3>
+          <p class="reasoning-text">{{ selectedVulnerability.confidenceReasoning }}</p>
+        </div>
+
+        <div class="detail-section" *ngIf="selectedVulnerability.callChains && selectedVulnerability.callChains.length > 0">
+          <h3>Call Chains ({{ selectedVulnerability.callChains.length }})</h3>
+          <div class="call-chain" *ngFor="let chain of selectedVulnerability.callChains; let i = index">
+            <div class="chain-header">
+              <strong>Chain {{ i + 1 }}</strong>
+              <span class="chain-path">{{ chain.entryPoint }} → {{ chain.vulnerableSink }}</span>
+            </div>
+            <div class="chain-steps">
+              <div class="step" *ngFor="let step of chain.steps; let stepNum = index">
+                <div class="step-number">{{ stepNum + 1 }}</div>
+                <div class="step-content">
+                  <div class="step-method">{{ step.className }}.{{ step.methodName }}</div>
+                  <div class="step-location">{{ step.fileName }}:{{ step.lineNumber }}</div>
+                  <pre *ngIf="step.snippet" class="step-snippet"><code>{{ step.snippet }}</code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-section" *ngIf="selectedVulnerability.attackNarrative">
+          <h3>Attack Narrative</h3>
+          <p class="narrative-text">{{ selectedVulnerability.attackNarrative }}</p>
+        </div>
+
+        <div class="detail-section" *ngIf="selectedVulnerability.exploitDemo">
+          <h3>Exploit Demonstration</h3>
+          
+          <div class="exploit-subsection">
+            <h4>Attack Setup</h4>
+            <p>{{ selectedVulnerability.exploitDemo.attackSetup }}</p>
+          </div>
+
+          <div class="exploit-subsection">
+            <h4>Example HTTP Request</h4>
+            <pre><code>{{ selectedVulnerability.exploitDemo.httpRequest }}</code></pre>
+          </div>
+
+          <div class="exploit-subsection">
+            <h4>Step-by-Step Attack</h4>
+            <ol class="attack-steps">
+              <li *ngFor="let step of selectedVulnerability.exploitDemo.stepByStep">{{ step }}</li>
+            </ol>
+          </div>
+
+          <div class="exploit-subsection">
+            <h4>Attacker Outcome</h4>
+            <p>{{ selectedVulnerability.exploitDemo.attackerOutcome }}</p>
+          </div>
+
+          <div class="code-comparison">
+            <div class="code-block unsafe">
+              <h4>❌ Unsafe Code</h4>
+              <pre><code>{{ selectedVulnerability.exploitDemo.unsafeCode }}</code></pre>
+            </div>
+            <div class="code-block safe">
+              <h4>✅ Safe Code</h4>
+              <pre><code>{{ selectedVulnerability.exploitDemo.safeCode }}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

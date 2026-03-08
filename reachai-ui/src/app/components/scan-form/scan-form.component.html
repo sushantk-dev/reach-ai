@@ -1,0 +1,62 @@
+<div class="scan-form-container">
+  <div class="card">
+    <h2>Scan Repository</h2>
+    <p class="subtitle">Enter a GitHub repository URL to analyze for vulnerabilities</p>
+
+    <form (ngSubmit)="onSubmit()" *ngIf="!scanComplete">
+      <div class="form-group">
+        <label for="repoUrl" class="form-label">Repository URL</label>
+        <input
+          type="text"
+          id="repoUrl"
+          name="repoUrl"
+          class="form-input"
+          [(ngModel)]="repoUrl"
+          placeholder="https://github.com/username/repository"
+          [disabled]="isScanning"
+          required
+        />
+        <small class="form-hint">Example: https://github.com/spring-projects/spring-petclinic</small>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" [disabled]="isScanning || !repoUrl.trim()">
+          <span *ngIf="!isScanning">Start Scan</span>
+          <span *ngIf="isScanning">Scanning...</span>
+        </button>
+      </div>
+    </form>
+
+    <div *ngIf="isScanning" class="scanning-indicator">
+      <div class="spinner"></div>
+      <p class="scanning-text">Analyzing repository...</p>
+      <p class="scanning-subtext">This may take a few minutes</p>
+    </div>
+
+    <div *ngIf="errorMessage" class="alert alert-error">
+      {{ errorMessage }}
+    </div>
+
+    <div *ngIf="scanComplete && scanResults" class="scan-summary">
+      <div class="success-message">
+        <svg class="success-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <h3>Scan Complete</h3>
+      </div>
+
+      <div class="summary-stats">
+        <div class="stat-item">
+          <div class="stat-value">{{ scanResults.totalDependencies }}</div>
+          <div class="stat-label">Total Dependencies</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value stat-vulnerable">{{ scanResults.vulnerableDependencies }}</div>
+          <div class="stat-label">Vulnerabilities Found</div>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary" (click)="resetForm()">Scan Another Repository</button>
+    </div>
+  </div>
+</div>
