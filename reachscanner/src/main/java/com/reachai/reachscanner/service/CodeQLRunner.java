@@ -61,22 +61,24 @@ public class CodeQLRunner {
     /**
      * Runs a CodeQL query against a database and produces SARIF output
      *
+     * UPDATED: Accepts query as String to support both file paths and built-in queries
+     *
      * @param databasePath Path to the CodeQL database
-     * @param queryPath Path to the .ql query file
+     * @param query Query string - can be a file path OR a built-in query reference (e.g., "codeql/java-queries:...")
      * @return Path to the generated SARIF results file
      */
-    public Path runQuery(Path databasePath, Path queryPath) throws IOException, InterruptedException {
+    public Path runQuery(Path databasePath, String query) throws IOException, InterruptedException {
         String resultsFileName = "results_" + System.currentTimeMillis() + ".sarif";
         Path resultsPath = databasePath.getParent().resolve(resultsFileName);
 
-        log.info("Running CodeQL query {} against database {}", queryPath, databasePath);
+        log.info("Running CodeQL query {} against database {}", query, databasePath);
 
         List<String> command = new ArrayList<>();
         command.add(codeqlExecutable);
         command.add("database");
         command.add("analyze");
         command.add(databasePath.toString());
-        command.add(queryPath.toString());
+        command.add(query);  // CodeQL CLI handles both file paths and built-in query references
         command.add("--format=sarif-latest");
         command.add("--output=" + resultsPath.toString());
         command.add("--rerun");
@@ -96,10 +98,10 @@ public class CodeQLRunner {
      * This is a convenience method that combines database creation and query execution
      *
      * @param repoPath Path to the repository
-     * @param queryPath Path to the CodeQL query
+     * @param query Query string (file path or built-in query reference)
      * @return Path to the SARIF results file
      */
-    public Path analyzeRepository(Path repoPath, Path queryPath) throws IOException, InterruptedException {
+    public Path analyzeRepository(Path repoPath, String query) throws IOException, InterruptedException {
         Path databasePath = null;
 
         try {
@@ -107,7 +109,7 @@ public class CodeQLRunner {
             databasePath = createDatabase(repoPath, "java");
 
             // Run query
-            return runQuery(databasePath, queryPath);
+            return runQuery(databasePath, query);
 
         } finally {
             // Clean up database after analysis

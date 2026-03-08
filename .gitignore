@@ -5,4 +5,10 @@ package-lock.json
 
 codeql/
 
+codeql-dbs/
+
+apache-maven-3.9.13/
+
+target/
+
 .env
